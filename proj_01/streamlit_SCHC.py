@@ -99,8 +99,12 @@ with st.sidebar.expander("Load Data & Model", expanded=False):
         "healthcare_demand_model.pkl":    models["hc_demand"] is not None,
         "healthcare_shortage_model.pkl":  models["hc_risk"]   is not None,
     }
+    # Use info (blue) instead of warning (yellow) when a model isn't loaded
     for name, ok in model_status.items():
-        (st.success if ok else st.warning)(f"Model: {name}")
+        if ok:
+            st.success(f"Model: {name}")
+        else:
+            st.info(f"Model: {name} (not loaded, using stats fallback)")
 
 st.title("🩺🚚 SCHC — Unified Inventory & Delivery Risk Advisor")
 
@@ -140,6 +144,7 @@ with st.sidebar.form("inputs_form"):
 # Core computations (hybrid: models if available; else stats)
 # -------------------------------
 def predict_demand_and_risk(hospital, medicine, month, current_inventory, lead_time_days):
+    # Region inference from hc_df
     region = hc_df.loc[hc_df["Hospital"] == hospital, "Region"].iloc[0] if hospital in hc_df["Hospital"].unique() else "MW"
     # Demand
     if models["hc_demand"] is not None:
@@ -149,8 +154,17 @@ def predict_demand_and_risk(hospital, medicine, month, current_inventory, lead_t
         }])
         demand_pred = float(models["hc_demand"].predict(x_reg)[0])
     else:
-        row = demand_baseline.query("Hospital == @hospital and Medicine == @medicine and Month == @month")
-        demand_pred = float(row["pred_monthly_demand"].iloc[0]) if not row.empty else float(hc_df.loc[hc_df["Medicine"]==medicine,"Demand"].mean())
+        mask = (
+            (demand_baseline["Hospital"].eq(hospital)) &
+            (demand_baseline["Medicine"].eq(medicine)) &
+            (demand_baseline["Month"].eq(month))
+        )
+        row = demand_baseline.loc[mask]
+        if not row.empty:
+            demand_pred = float(row["pred_monthly_demand"].iloc[0])
+        else:
+            demand_pred = float(hc_df.loc[hc_df["Medicine"]==medicine, "Demand"].mean())
+
     # Shortage probability
     if models["hc_risk"] is not None:
         x_cls = pd.DataFrame([{
@@ -161,7 +175,7 @@ def predict_demand_and_risk(hospital, medicine, month, current_inventory, lead_t
     else:
         daily = demand_pred / 30.0
         buffer_need = daily * lead_time_days
-        shortage_prob = 0.8 if current_inventory < buffer_need else 0.2
+        shortage_prob = 0.8 if current_inventory < buffer_need else 0.2  # simple heuristic
 
     daily_need = demand_pred / 30.0
     buffer_need = daily_need * lead_time_days
@@ -170,12 +184,14 @@ def predict_demand_and_risk(hospital, medicine, month, current_inventory, lead_t
     return demand_pred, shortage_prob, buffer_need, inventory_gap
 
 def estimate_lane(origin, destination, carrier, service, distance_override=None, weight=35000, stops=1):
+    # Distance: if override provided and >0, use it; else use mean for lane
     if distance_override and distance_override > 0:
         distance = float(distance_override)
     else:
         lane = sc_shipments[(sc_shipments["Origin"]==origin) & (sc_shipments["Destination"]==destination)]
         distance = float(lane["Distance"].mean()) if len(lane) >= 5 else 800.0
 
+    # On-time and Cost
     if (models["sc_on_time"] is not None) and (models["sc_cost"] is not None):
         x_sc = pd.DataFrame([{
             "Origin": origin, "Destination": destination, "Carrier": carrier, "ServiceLevel": service,
@@ -184,9 +200,19 @@ def estimate_lane(origin, destination, carrier, service, distance_override=None,
         on_time_prob = float(models["sc_on_time"].predict_proba(x_sc)[0,1])
         cost_est     = float(models["sc_cost"].predict(x_sc)[0])
     else:
-        row = lane_stats.query("Origin == @origin and Destination == @destination and Carrier == @carrier and ServiceLevel == @service")
+        # Robust boolean indexing (avoid .query)
+        mask = (
+            (lane_stats["Origin"].eq(origin)) &
+            (lane_stats["Destination"].eq(destination)) &
+            (lane_stats["Carrier"].eq(carrier)) &
+            (lane_stats["ServiceLevel"].eq(service))
+        )
+        row = lane_stats.loc[mask]
         if row.empty:
-            lane_only = sc_shipments.query("Origin == @origin and Destination == @destination")
+            lane_only = sc_shipments.loc[
+                (sc_shipments["Origin"].eq(origin)) &
+                (sc_shipments["Destination"].eq(destination))
+            ]
             on_time_prob = float(lane_only["OnTimeDelivery"].mean()) if not lane_only.empty else 0.65
             cost_est     = float(lane_only["ShipmentCost"].mean()) if not lane_only.empty else 300.0
         else:
