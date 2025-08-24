@@ -4,7 +4,7 @@ This project explores how **data and machine learning** can support better decis
 - **Healthcare** → hospital medicine inventory  
 - **Supply Chain Logistics** → shipping performance and carrier reliability  
 
-It started as part of my **IBM AI Engineering Certification** and grew into a hands-on project with notebooks, data simulations, and an interactive **Streamlit app** that makes the results accessible to both technical and non-technical users.  
+It started as part of my **IBM AI Engineering Certification**, but turned into a passion-project after losing my mom to cancer and my dad to pneumonia during COVID. I wanted to test what I was learning on something personal and relevant, so the knowledge would stick. Seeing how supply shortages and system strain on healthcare played a role, I wanted to explore how machine learning could help better forecast demand and reduce risk for people in similar situations.  
 
 ---
 
@@ -32,7 +32,7 @@ It started as part of my **IBM AI Engineering Certification** and grew into a ha
 The **Streamlit app** makes it easy for anyone—technical or not—to explore the results.  
 
 ### 🛠️ How to Use  
-1. Open the app in your browser.  
+1. Open the app in your browser. [link](https://supplychain-healthcare-advisor-ktxth8wpgwx3vcuyztymcd.streamlit.app/)
 2. Use the **sidebar** to set your inputs:  
    - 🏥 Hospital and 💊 Medicine  
    - 📦 Current Inventory and 📅 Lead Time (days)  
@@ -51,10 +51,18 @@ The **Streamlit app** makes it easy for anyone—technical or not—to explore t
 
 ---
 
+## 📸 Demo Screenshot
+
+Here’s what the Streamlit app looks like in action:
+
+![SCHC App Demo](proj_01/docs/demo_schc_01.png)
+
+---
+
 ## 💡 Why This Matters  
 - 🏥 In healthcare: running out of critical medicines can impact patient care.  
 - 🚚 In logistics: choosing the wrong carrier or lane can cause costly delays.  
-- 🔗 Together: combining both perspectives leads to **smarter, risk-aware decisions**.  
+- 🔗 Together: combining both perspectives hopefully leads to **smarter, risk-aware decisions**.  
 
 ---
 
@@ -64,12 +72,5 @@ The **Streamlit app** makes it easy for anyone—technical or not—to explore t
 - **Jupyter Notebooks** for experimentation  
 - **GitHub + Streamlit Cloud** for sharing  
 
----
-
-## 📸 Demo Screenshot
-
-Here’s what the Streamlit app looks like in action:
-
-![SCHC App Demo](proj_01/docs/demo_schc_01.png)
 
 
