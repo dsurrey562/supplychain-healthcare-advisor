@@ -1,0 +1,13 @@
+# Ignore virtual environments
+venv/
+ai_eng_venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore OS files
+.DS_Store
+
+# # Ignore model artifacts if too large
+# models/*.pkl
