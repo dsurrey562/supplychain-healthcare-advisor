@@ -78,8 +78,13 @@ except FileNotFoundError as e:
     st.stop()
 
 models = load_models()
-if lane_stats is None:
+
+# --- lane_stats sanity check: if CSV is missing columns, recompute from shipments ---
+REQUIRED_LS_COLS = {"Origin","Destination","Carrier","ServiceLevel"}
+if (lane_stats is None) or (not REQUIRED_LS_COLS.issubset(set(lane_stats.columns))):
+    # Recompute a good lane_stats from the shipments file so downstream code never KeyErrors
     lane_stats = compute_lane_stats(sc_shipments)
+
 demand_baseline = baseline_demand(hc_df)
 
 # -------------------------------
@@ -99,12 +104,14 @@ with st.sidebar.expander("Load Data & Model", expanded=False):
         "healthcare_demand_model.pkl":    models["hc_demand"] is not None,
         "healthcare_shortage_model.pkl":  models["hc_risk"]   is not None,
     }
-    # Use info (blue) instead of warning (yellow) when a model isn't loaded
     for name, ok in model_status.items():
         if ok:
             st.success(f"Model: {name}")
         else:
             st.info(f"Model: {name} (not loaded, using stats fallback)")
+
+    # Optional: show what columns lane_stats actually has (helps debugging uploads)
+    st.caption(f"lane_stats columns: {', '.join(lane_stats.columns.astype(str))}")
 
 st.title("🩺🚚 SCHC — Unified Inventory & Delivery Risk Advisor")
 
