@@ -82,7 +82,6 @@ models = load_models()
 # --- lane_stats sanity check: if CSV is missing columns, recompute from shipments ---
 REQUIRED_LS_COLS = {"Origin","Destination","Carrier","ServiceLevel"}
 if (lane_stats is None) or (not REQUIRED_LS_COLS.issubset(set(lane_stats.columns))):
-    # Recompute a good lane_stats from the shipments file so downstream code never KeyErrors
     lane_stats = compute_lane_stats(sc_shipments)
 
 demand_baseline = baseline_demand(hc_df)
@@ -104,14 +103,12 @@ with st.sidebar.expander("Load Data & Model", expanded=False):
         "healthcare_demand_model.pkl":    models["hc_demand"] is not None,
         "healthcare_shortage_model.pkl":  models["hc_risk"]   is not None,
     }
+    # Use info (blue) instead of warning (yellow) when a model isn't loaded
     for name, ok in model_status.items():
         if ok:
             st.success(f"Model: {name}")
         else:
             st.info(f"Model: {name} (not loaded, using stats fallback)")
-
-    # Optional: show what columns lane_stats actually has (helps debugging uploads)
-    st.caption(f"lane_stats columns: {', '.join(lane_stats.columns.astype(str))}")
 
 st.title("🩺🚚 SCHC — Unified Inventory & Delivery Risk Advisor")
 
@@ -245,7 +242,7 @@ if run_clicked:
     recommendation = "✅ ORDER NOW" if order_now else "🕒 OK TO WAIT"
     logistics_note = "⚠️ Lane/Carrier risk is HIGH (consider expedited or different carrier)" if risk_flag else "✅ Lane/Carrier risk acceptable"
 
-    # -------- Display (rounded integers for unit counts) --------
+    # -------- Display (with emojis for README cross-reference) --------
     display_demand   = f"{int(round(demand_pred)):,}"
     display_shortage = f"{shortage_prob * 100:.2f}%"
     display_ontime   = f"{on_time_prob * 100:.2f}%"
@@ -253,21 +250,21 @@ if run_clicked:
     display_buffer   = f"{int(round(buffer_need)):,}"
     display_gap      = f"{int(round(inventory_gap)):,}"
 
-    st.subheader("Recommendation")
+    st.subheader("📊 Recommendation")
     c1, c2 = st.columns(2)
     with c1:
-        st.metric("Predicted Monthly Demand", display_demand)
-        st.metric("Shortage Probability", display_shortage)
-        st.metric("Inventory Buffer Need", display_buffer)
+        st.metric("🔢 Predicted Monthly Demand", display_demand)
+        st.metric("📉 Shortage Probability", display_shortage)
+        st.metric("📦 Inventory Buffer Need", display_buffer)
     with c2:
-        st.metric("On-Time Probability", display_ontime)
-        st.metric("Estimated Cost ($)", display_cost)
-        st.metric("Inventory Gap (Units)", display_gap)
+        st.metric("🚚 On-Time Probability", display_ontime)
+        st.metric("💲 Estimated Cost ($)", display_cost)
+        st.metric("➖ Inventory Gap (Units)", display_gap)
 
     st.info(f"**Decision:** {recommendation}\n\n**Logistics:** {logistics_note}\n\n**Distance Used:** {round(distance,1)} mi")
 
     # Compare carriers
-    st.subheader("Compare Carriers (Same Lane/Inputs)")
+    st.subheader("🔄 Compare Carriers (Same Lane/Inputs)")
     rows = []
     for c in carriers:
         _, otp, ce = estimate_lane(
