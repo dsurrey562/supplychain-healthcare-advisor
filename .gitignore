@@ -11,3 +11,6 @@ __pycache__/
 
 # # Ignore model artifacts if too large
 # models/*.pkl
+
+# ignore _local_bu.py in name
+*_local_bu.py
